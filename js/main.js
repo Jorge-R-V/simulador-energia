@@ -40,59 +40,102 @@ document.addEventListener("DOMContentLoaded", () => {
   function ejecutarSimulacion(consumoObjetivo, mes, anio) {
     const diasDelMes = new Date(anio, mes, 0).getDate();
 
-    // Perfil típico de consumo diario en un hogar español (porcentajes por hora de 0 a 23)
-    // Ejemplo: menos de noche, picos a mediodía y noche.
-    const perfilBase = [
-      0.015, // 00:00
-      0.012, // 01:00
-      0.01,  // 02:00
-      0.009, // 03:00
-      0.009, // 04:00
-      0.01,  // 05:00
-      0.02,  // 06:00
-      0.04,  // 07:00
-      0.05,  // 08:00
-      0.045, // 09:00
-      0.04,  // 10:00
-      0.04,  // 11:00
-      0.045, // 12:00
-      0.06,  // 13:00
-      0.075, // 14:00
-      0.065, // 15:00
-      0.045, // 16:00
-      0.04,  // 17:00
-      0.05,  // 18:00
-      0.06,  // 19:00
-      0.08,  // 20:00
-      0.09,  // 21:00
-      0.065, // 22:00
-      0.03,  // 23:00
+    // El perfil base ya no será estático para cada día, 
+    // lo generaremos dependiendo de si es entre semana o fin de semana.
+    
+    // Perfil basado en la curva de carga con madrugadas y noches estables
+    // con picos fuertes de 09-11h y 15-18h, y valle a mediodía.
+    // Noche (20:00 a 08:00) estabilizada en 0.10.
+    let perfilLaboral = [
+      0.10, // 00:00 - 01:00 (Noche estable)
+      0.10, // 01:00 - 02:00
+      0.10, // 02:00 - 03:00
+      0.10, // 03:00 - 04:00
+      0.10, // 04:00 - 05:00
+      0.10, // 05:00 - 06:00
+      0.10, // 06:00 - 07:00
+      0.10, // 07:00 - 08:00
+      0.15, // 08:00 - 09:00 (Arrancando)
+      0.65, // 09:00 - 10:00 (Subida fuerte)
+      0.60, // 10:00 - 11:00 (Pico matutino)
+      0.55, // 11:00 - 12:00 (Mantenimiento alto a mediodía)
+      0.45, // 12:00 - 13:00 (Valle muy suave para comer)
+      0.45, // 13:00 - 14:00 (Valle muy suave para comer)
+      0.50, // 14:00 - 15:00 (Ascenso vespertino moderado)
+      0.35, // 15:00 - 16:00 (Pico moderado de tarde)
+      0.30, // 16:00 - 17:00 
+      0.25, // 17:00 - 18:00
+      0.15, // 18:00 - 19:00 (Bajando tras jornada)
+      0.25, // 19:00 - 20:00
+      0.10, // 20:00 - 21:00 (Noche estable)
+      0.10, // 21:00 - 22:00
+      0.10, // 22:00 - 23:00
+      0.10  // 23:00 - 24:00
     ];
 
-    // 1. Verificar que la suma del perfil base es = 1
-    const sumaPerfil = perfilBase.reduce((a, b) => a + b, 0);
-    const perfilNormalizado = perfilBase.map((p) => p / sumaPerfil);
+    // Lógica Estacional:
+    // Los meses de clima extremo (Verano: 6, 7, 8, 9 / Invierno: 1, 2, 12) 
+    // tienen los equipos de climatización ('aires') encendidos todo el día.
+    const mesesExtremos = [1, 2, 6, 7, 8, 9, 12];
+    const esClimaExtremo = mesesExtremos.includes(mes);
+
+    if (esClimaExtremo) {
+      // Elevamos significativamente la base de consumo durante el horario laboral
+      perfilLaboral = perfilLaboral.map((valor, hora) => {
+        if (hora >= 8 && hora <= 18) {
+          // Rellenamos los valles porque la climatización es una carga base constante
+          return valor + 0.40; 
+        }
+        return valor;
+      });
+    }
+
+    // Perfil típico de Empresa Fin de Semana: Mucho más plano y bajo
+    let perfilFinDeSemana = [
+      0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.02, 0.02, 0.02, 0.02,
+      0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.01, 0.01, 0.01, 0.01
+    ];
+
+    const sumaLaboral = perfilLaboral.reduce((a, b) => a + b, 0);
+    const laboralNormalizado = perfilLaboral.map((p) => p / sumaLaboral);
+    
+    const sumaFinde = perfilFinDeSemana.reduce((a, b) => a + b, 0);
+    const findeNormalizado = perfilFinDeSemana.map((p) => p / sumaFinde);
 
     // 2. Generar matriz de horas
-    const datosGenerados = []; // Array de días, cada día es un array de 24h
+    const datosGenerados = [];
     let totalActualAcumulado = 0;
 
-    // Distribuimos el consumo diario medio y aplicamos pequeñas variaciones
-    const consumoMedioDiario = consumoObjetivo / diasDelMes;
+    // Calculamos qué peso tiene cada día (los findes consumen menos que los laborables)
+    let pesoTotalMes = 0;
+    const diasInfo = [];
+    for (let dia = 1; dia <= diasDelMes; dia++) {
+      const fecha = new Date(anio, mes - 1, dia);
+      const diaSemana = fecha.getDay(); // 0(Dom) a 6(Sab)
+      const esFinde = diaSemana === 0 || diaSemana === 6;
+      const peso = esFinde ? 0.3 : 1.0; // El Finde la empresa gasta un 30% de un día normal
+      pesoTotalMes += peso;
+      diasInfo.push({ esFinde, peso });
+    }
+
+    // Distribuimos el consumo ponderado
+    const valorBasePonderado = consumoObjetivo / pesoTotalMes;
 
     for (let dia = 0; dia < diasDelMes; dia++) {
       const datosDiarios = [];
+      const info = diasInfo[dia];
 
-      // Variación aleatoria del día (± 15%)
-      // Simula que unos días en casa se gasta más y otros menos
-      const modificadorDiario = 1 + (Math.random() * 0.3 - 0.15);
-      let objetivoTotalDiario = consumoMedioDiario * modificadorDiario;
+      // Variación aleatoria del día (± 10%)
+      const modificadorDiario = 1 + (Math.random() * 0.2 - 0.1);
+      let objetivoTotalDiario = (valorBasePonderado * info.peso) * modificadorDiario;
       let totalDiarioActual = 0;
+      
+      const perfilUsado = info.esFinde ? findeNormalizado : laboralNormalizado;
 
       for (let hora = 0; hora < 24; hora++) {
-        // Variación horaria (± 10%) para que no todos los días sean idénticos
+        // Variación horaria (± 10%)
         const modificadorHorario = 1 + (Math.random() * 0.2 - 0.1);
-        let valorHora = objetivoTotalDiario * perfilNormalizado[hora] * modificadorHorario;
+        let valorHora = objetivoTotalDiario * perfilUsado[hora] * modificadorHorario;
 
         datosDiarios.push(valorHora);
         totalDiarioActual += valorHora;
@@ -232,51 +275,49 @@ document.addEventListener("DOMContentLoaded", () => {
   function dibujarTabla(simulacion) {
     // Cabeceras
     const cabeceraFila = document.getElementById("cabeceraTabla");
-    cabeceraFila.innerHTML = "<th>Día \\ Hora</th>";
-    for (let h = 0; h < 24; h++) {
-      cabeceraFila.innerHTML += `<th>${h.toString().padStart(2, "0")}:00</th>`;
+    cabeceraFila.innerHTML = "<th>Hora \\ Día</th>";
+    for (let dia = 0; dia < simulacion.dias; dia++) {
+      cabeceraFila.innerHTML += `<th>Día ${dia + 1}</th>`;
     }
-    cabeceraFila.innerHTML += "<th>Total Día</th>";
+    cabeceraFila.innerHTML += "<th>Suma Hora</th>";
 
     // Cuerpo
     const cuerpoTabla = document.getElementById("cuerpoTabla");
     cuerpoTabla.innerHTML = "";
 
-    for (let dia = 0; dia < simulacion.dias; dia++) {
+    let sumasDiarias = new Array(simulacion.dias).fill(0);
+    let sumaTotalAbsoluta = 0;
+
+    for (let h = 0; h < 24; h++) {
       const fila = document.createElement("tr");
-      fila.innerHTML = `<td>Día ${dia + 1}</td>`;
+      fila.innerHTML = `<td><strong>${h.toString().padStart(2, "0")}:00</strong></td>`;
 
-      let totalDiario = 0;
-      for (let hora = 0; hora < 24; hora++) {
-        const valorHora = simulacion.matriz[dia][hora];
-        totalDiario += valorHora;
-
+      let totalPorHora = 0;
+      for (let dia = 0; dia < simulacion.dias; dia++) {
+        const valorParcial = simulacion.matriz[dia][h];
+        totalPorHora += valorParcial;
+        sumasDiarias[dia] += valorParcial;
+        
         // Color coding based on value
         let claseColor = "";
-        if (valorHora > simulacion.picoMaximo * 0.7) claseColor = "valor-alto";
-        else if (valorHora < simulacion.picoMaximo * 0.2) claseColor = "valor-bajo";
+        if (valorParcial > simulacion.picoMaximo * 0.7) claseColor = "valor-alto";
+        else if (valorParcial < simulacion.picoMaximo * 0.2) claseColor = "valor-bajo";
         else claseColor = "valor-medio";
 
-        fila.innerHTML += `<td class="${claseColor}">${valorHora.toFixed(3)}</td>`;
+        fila.innerHTML += `<td class="${claseColor}">${valorParcial.toFixed(3)}</td>`;
       }
-
-      fila.innerHTML += `<td><strong>${totalDiario.toFixed(2)}</strong></td>`;
+      sumaTotalAbsoluta += totalPorHora;
+      fila.innerHTML += `<td><strong>${totalPorHora.toFixed(2)}</strong></td>`;
       cuerpoTabla.appendChild(fila);
     }
 
     // Fila de totales
     const filaTotales = document.createElement("tr");
     filaTotales.style.background = "rgba(255,255,255,0.1)";
-    filaTotales.innerHTML = "<td><strong>Suma Hora M.</strong></td>";
-    let sumaTotalAbsoluta = 0;
+    filaTotales.innerHTML = "<td><strong>Total Día</strong></td>";
 
-    for (let h = 0; h < 24; h++) {
-      let totalPorHora = 0;
-      for (let d = 0; d < simulacion.dias; d++) {
-        totalPorHora += simulacion.matriz[d][h];
-      }
-      sumaTotalAbsoluta += totalPorHora;
-      filaTotales.innerHTML += `<td><strong>${totalPorHora.toFixed(2)}</strong></td>`;
+    for (let dia = 0; dia < simulacion.dias; dia++) {
+      filaTotales.innerHTML += `<td><strong>${sumasDiarias[dia].toFixed(2)}</strong></td>`;
     }
     filaTotales.innerHTML += `<td style="color:#6366f1;"><strong>${sumaTotalAbsoluta.toFixed(2)} kWh</strong></td>`;
     cuerpoTabla.appendChild(filaTotales);
@@ -289,23 +330,37 @@ document.addEventListener("DOMContentLoaded", () => {
     let contenidoCSV = "data:text/csv;charset=utf-8,";
 
     // Cabeceras
-    const cabecerasCSV = ["Dia"];
-    for (let i = 0; i < 24; i++) cabecerasCSV.push(`${i}:00`);
-    cabecerasCSV.push("Total_Dia");
+    const cabecerasCSV = ["Hora"];
+    for (let d = 0; d < simulacion.dias; d++) cabecerasCSV.push(`Dia ${d + 1}`);
+    cabecerasCSV.push("Total_Hora");
     contenidoCSV += cabecerasCSV.join(";") + "\r\n";
 
+    let sumasDiarias = new Array(simulacion.dias).fill(0);
+    let sumaTotalAbsoluta = 0;
+
     // Filas
-    for (let dia = 0; dia < simulacion.dias; dia++) {
-      const filaTexto = [(dia + 1).toString()];
-      let sumaDia = 0;
-      for (let h = 0; h < 24; h++) {
+    for (let h = 0; h < 24; h++) {
+      const filaTexto = [`${h.toString().padStart(2, "0")}:00`];
+      let totalPorHora = 0;
+      
+      for (let dia = 0; dia < simulacion.dias; dia++) {
         const valorHora = simulacion.matriz[dia][h];
-        filaTexto.push(valorHora.toFixed(4).replace(".", ",")); // Excel en ES usa coma para decimales
-        sumaDia += valorHora;
+        filaTexto.push(valorHora.toFixed(4).replace(".", ","));
+        totalPorHora += valorHora;
+        sumasDiarias[dia] += valorHora;
       }
-      filaTexto.push(sumaDia.toFixed(4).replace(".", ","));
+      sumaTotalAbsoluta += totalPorHora;
+      filaTexto.push(totalPorHora.toFixed(4).replace(".", ","));
       contenidoCSV += filaTexto.join(";") + "\r\n";
     }
+
+    // Totales diarios guardados
+    const filaTotales = ["Total_Dia"];
+    for (let dia = 0; dia < simulacion.dias; dia++) {
+      filaTotales.push(sumasDiarias[dia].toFixed(4).replace(".", ","));
+    }
+    filaTotales.push(sumaTotalAbsoluta.toFixed(4).replace(".", ","));
+    contenidoCSV += filaTotales.join(";") + "\r\n";
 
     const uriCodificada = encodeURI(contenidoCSV);
     const enlace = document.createElement("a");
