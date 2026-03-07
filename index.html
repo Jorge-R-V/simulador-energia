@@ -1,137 +1,155 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Simulador de Consumo Eléctrico</title>
-    <!-- Modern Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css" />
-  </head>
-  <body>
-    <main class="contenedor-principal">
-      <header class="panel-cristal">
-        <h1>Simulador Mensual de Consumo Eléctrico</h1>
-      </header>
 
-      <section class="panel-configuracion panel-cristal">
-        <form id="formularioSimulador">
-          <div class="grupo-formulario">
-            <label for="consumoTotal">Consumo Mensual Total (kWh)</label>
-            <input
-              type="number"
-              id="consumoTotal"
-              name="consumoTotal"
-              required
-              min="1"
-              step="0.01"
-              placeholder="Ej: 300"
-            />
-          </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Consumo Eléctrico</title>
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet" />
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
 
-          <div class="grupo-formulario">
-            <label for="mes">Mes</label>
-            <select id="mes" name="mes" required>
-              <option value="1">Enero</option>
-              <option value="2">Febrero</option>
-              <option value="3">Marzo</option>
-              <option value="4">Abril</option>
-              <option value="5">Mayo</option>
-              <option value="6">Junio</option>
-              <option value="7">Julio</option>
-              <option value="8">Agosto</option>
-              <option value="9">Septiembre</option>
-              <option value="10">Octubre</option>
-              <option value="11">Noviembre</option>
-              <option value="12">Diciembre</option>
-            </select>
-          </div>
+<body>
+  <main class="contenedor-principal">
+    <header class="panel-cristal">
+      <h1>Simulador Mensual de Consumo Eléctrico</h1>
+    </header>
 
-          <div class="grupo-formulario">
-            <label for="anio">Año</label>
-            <input
-              type="number"
-              id="anio"
-              name="anio"
-              required
-              min="2000"
-              max="2100"
-              value="2026"
-            />
-          </div>
+    <section class="panel-configuracion panel-cristal">
+      <form id="formularioSimulador">
+        <div class="grupo-formulario">
+          <label for="consumoTotal">Consumo Mensual Total (kWh)</label>
+          <input type="number" id="consumoTotal" name="consumoTotal" required min="1" step="0.01"
+            placeholder="Ej: 300" />
+        </div>
 
-          <button type="submit" class="boton-primario">
-            <span>Generar Simulador</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-          </button>
-        </form>
+        <div class="grupo-formulario">
+          <label for="mes">Mes</label>
+          <select id="mes" name="mes" required>
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </div>
+
+        <div class="grupo-formulario">
+          <label for="anio">Año</label>
+          <input type="number" id="anio" name="anio" required min="2000" max="2100" value="2026" />
+        </div>
+
+        <button type="submit" class="boton-primario">
+          <span>Generar Simulador</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </button>
+      </form>
+    </section>
+
+    <div id="resultados" class="oculto">
+      <section class="panel-resumen panel-cristal">
+        <div class="tarjeta-estadistica">
+          <h3>Total Distribuido</h3>
+          <p id="estadisticaTotal" class="valor-estadistico">0.00 kWh</p>
+        </div>
+        <div class="tarjeta-estadistica">
+          <h3>Días Calculados</h3>
+          <p id="estadisticaDias" class="valor-estadistico">0</p>
+        </div>
+        <div class="tarjeta-estadistica">
+          <h3>Pico Máximo Diario</h3>
+          <p id="estadisticaPico" class="valor-estadistico">0.00 kWh</p>
+        </div>
       </section>
 
-      <div id="resultados" class="oculto">
-        <section class="panel-resumen panel-cristal">
-          <div class="tarjeta-estadistica">
-            <h3>Total Distribuido</h3>
-            <p id="estadisticaTotal" class="valor-estadistico">0.00 kWh</p>
-          </div>
-          <div class="tarjeta-estadistica">
-            <h3>Días Calculados</h3>
-            <p id="estadisticaDias" class="valor-estadistico">0</p>
-          </div>
-          <div class="tarjeta-estadistica">
-            <h3>Pico Máximo Diario</h3>
-            <p id="estadisticaPico" class="valor-estadistico">0.00 kWh</p>
-          </div>
-        </section>
+      <section class="panel-grafico panel-cristal">
+        <h2>Gráfico de Consumo Medio por Hora</h2>
+        <div class="contenedor-lienzo">
+          <canvas id="graficoConsumo"></canvas>
+        </div>
+      </section>
 
-        <section class="panel-grafico panel-cristal">
-          <h2>Gráfico de Consumo Medio por Hora</h2>
-          <div class="contenedor-lienzo">
-            <canvas id="graficoConsumo"></canvas>
-          </div>
-        </section>
+      <section class="panel-tabla panel-cristal">
+        <h2>Desglose Diario detallado (kWh)</h2>
+        <div class="tabla-adaptable">
+          <table id="tablaDatos">
+            <thead>
+              <tr id="cabeceraTabla">
+                <!-- Headers generados por JS -->
+              </tr>
+            </thead>
+            <tbody id="cuerpoTabla">
+              <!-- Filas generadas por JS -->
+            </tbody>
+          </table>
+        </div>
+        <button id="botonDescargarCSV" class="boton-secundario margen-superior-1">
+          Descargar CSV
+        </button>
+      </section>
 
-        <section class="panel-tabla panel-cristal">
-          <h2>Desglose Diario detallado (kWh)</h2>
-          <div class="tabla-adaptable">
-            <table id="tablaDatos">
-              <thead>
-                <tr id="cabeceraTabla">
-                  <!-- Headers generados por JS -->
-                </tr>
-              </thead>
-              <tbody id="cuerpoTabla">
-                <!-- Filas generadas por JS -->
-              </tbody>
-            </table>
-          </div>
-          <button id="botonDescargarCSV" class="boton-secundario margen-superior-1">
-            Descargar CSV
-          </button>
-        </section>
+
+  </main>
+
+  <!-- Modal para Desglose Diario/Horario -->
+  <div id="modalDesglose" class="modal oculto">
+    <div class="modal-contenido panel-cristal">
+      <div class="modal-cabecera">
+        <h2 id="tituloModal">Desglose - Día X, XX:00</h2>
+        <button id="cerrarModal" class="boton-cerrar">&times;</button>
       </div>
-    </main>
+      <div class="modal-cuerpo">
+        <div class="tarjeta-modal-info">
+          <p><strong>Total en esta hora:</strong> <span id="totalHoraModal" style="color: #ec4899">0.00 kWh</span></p>
+        </div>
+        <div class="tabla-adaptable">
+          <table id="tablaDesgloseHora">
+            <thead>
+              <tr>
+                <th>Aparato</th>
+                <th>Cantidad</th>
+                <th>Potencia (kW)</th>
+                <th>Tiempo Efectivo</th>
+                <th>Consumo (kWh)</th>
+                <th>% del Total</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoTablaDesgloseHora">
+              <!-- Contenido generado por JS -->
+            </tbody>
+          </table>
+        </div>
+        <div class="control-grafico">
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggleSlices" checked>
+            <span class="plataforma"></span>
+            Mostrar todos los aparatos (incluso < 1%) </label>
+        </div>
+        <div class="grafico-modal-contenedor">
+          <canvas id="graficoDesglosePie"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Custom JS -->
-    <script src="js/main.js"></script>
-  </body>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Custom JS -->
+  <script src="js/main.js"></script>
+</body>
+
 </html>
