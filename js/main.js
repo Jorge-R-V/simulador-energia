@@ -485,37 +485,31 @@ document.addEventListener("DOMContentLoaded", () => {
     let contenidoCSV = "data:text/csv;charset=utf-8,";
 
     // Cabeceras
-    const cabecerasCSV = ["Hora"];
-    for (let d = 0; d < simulacion.dias; d++) cabecerasCSV.push(`Dia ${d + 1}`);
-    cabecerasCSV.push("Total_Hora");
+    const cabecerasCSV = ["Fecha", "Hora", "Consumo_kWh"];
     contenidoCSV += cabecerasCSV.join(";") + "\r\n";
 
-    let sumasDiarias = new Array(simulacion.dias).fill(0);
-    let sumaTotalAbsoluta = 0;
+    // Obtener mes y año seleccionados
+    const mesStr = document.getElementById("mes").value.padStart(2, '0');
+    const anioStr = document.getElementById("anio").value;
 
     // Filas
-    for (let h = 0; h < 24; h++) {
-      const filaTexto = [`${h.toString().padStart(2, "0")}:00`];
-      let totalPorHora = 0;
-
-      for (let dia = 0; dia < simulacion.dias; dia++) {
-        const valorHora = simulacion.matriz[dia][h];
-        filaTexto.push(valorHora.toFixed(4).replace(".", ","));
-        totalPorHora += valorHora;
-        sumasDiarias[dia] += valorHora;
-      }
-      sumaTotalAbsoluta += totalPorHora;
-      filaTexto.push(totalPorHora.toFixed(4).replace(".", ","));
-      contenidoCSV += filaTexto.join(";") + "\r\n";
-    }
-
-    // Totales diarios guardados
-    const filaTotales = ["Total_Dia"];
     for (let dia = 0; dia < simulacion.dias; dia++) {
-      filaTotales.push(sumasDiarias[dia].toFixed(4).replace(".", ","));
+      const diaStr = String(dia + 1).padStart(2, '0');
+      const fechaFormat = `${diaStr}/${mesStr}/${anioStr}`;
+
+      for (let h = 0; h < 24; h++) {
+        const horaConfigurada = h + 1; // Ajuste para que vaya de 1 a 24
+        const valorHora = simulacion.matriz[dia][h];
+        
+        const filaTexto = [
+          fechaFormat,
+          horaConfigurada,
+          valorHora.toFixed(3).replace(".", ",")
+        ];
+        
+        contenidoCSV += filaTexto.join(";") + "\r\n";
+      }
     }
-    filaTotales.push(sumaTotalAbsoluta.toFixed(4).replace(".", ","));
-    contenidoCSV += filaTotales.join(";") + "\r\n";
 
     const uriCodificada = encodeURI(contenidoCSV);
     const enlace = document.createElement("a");
